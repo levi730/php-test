@@ -1,8 +1,45 @@
-# Use the official PHP image.
-# https://hub.docker.com/_/php
-FROM php:8.2-apache
+#################################################
+# Composer Setup
+#################################################
+FROM composer:2.6 as vendor
+COPY database/ database/
 
-RUN mkdir -p /app
+COPY composer.json composer.json
+COPY composer.lock composer.lock
+
+
+
+RUN composer install \
+    --ignore-platform-reqs \
+    --no-interaction \
+    --no-plugins \
+    --no-scripts \
+    --prefer-dist
+
+#################################################
+# NodeJS Setup
+#################################################
+FROM node:18 as frontend
+RUN mkdir -p /app/public
+COPY package.json vite.config.js package-lock.json /app/
+COPY resources /app/resources
+
+WORKDIR /app
+RUN npm install && npm run build
+
+
+#################################################
+# PHP/Apache Setup
+#################################################
+FROM php:8.2-apache
+ADD --chmod=0755 https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions /usr/local/bin/
+
+RUN mkdir -p /app && \
+    a2enmod rewrite
+WORKDIR /app
+COPY . /app
+COPY --from=vendor /app/vendor/ /app/vendor/
+COPY --from=frontend /app/public /app/public
 
 # Configure PHP for Cloud Run.
 # Precompile PHP code with opcache.
@@ -22,13 +59,11 @@ RUN mkdir -p /app
 #    echo "opcache.memory_consumption = 32"; \
 #  } > "$PHP_INI_DIR/conf.d/cloud-run.ini"
 
-
-# Copy in custom code from the host machine.
-WORKDIR /app
+RUN install-php-extensions pdo_mysql gd zip sqlsrv pdo_sqlsrv \
+    && php artisan optimize
 COPY --chown=www-data:www-data . ./
 
 COPY .docker/apache_config.txt /etc/apache2/sites-available/000-default.conf
-
 
 # Use the PORT environment variable in Apache configuration files.
 # https://cloud.google.com/run/docs/reference/container-contract#port
