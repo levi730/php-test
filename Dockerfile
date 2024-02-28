@@ -35,15 +35,13 @@ FROM us-docker.pkg.dev/quickstart-1581571807512/ftas-base-images/ftas-php-82-apa
 WORKDIR /app
 COPY . /app
 
-RUN sed -ri -e 's!/var/www/html!${APACHE_ROOT}!g' /etc/apache2/sites-available/*.conf /etc/apache2/apache2.conf
-
-
+COPY --from=frontend /app/public /app/public
 RUN chown -R www-data: /app && \
   find /app -type d -exec chmod 0755 {} \; && \
   find /app -type f -exec chmod 0644 {} \; && \
-  sed -i 's/80/${PORT}/g' /etc/apache2/sites-available/000-default.conf /etc/apache2/ports.conf
+  sed -i 's/80/${PORT}/g' /etc/apache2/sites-available/000-default.conf /etc/apache2/ports.conf && \
+  sed -ri -e 's!/var/www/html!${APACHE_ROOT}!g' /etc/apache2/sites-available/*.conf /etc/apache2/apache2.conf
 
 
 COPY --from=vendor /app/vendor/ /app/vendor/
-COPY --from=frontend /app/public /app/public
 
