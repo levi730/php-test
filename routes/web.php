@@ -1,6 +1,8 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Log;
+
 
 /*
 |--------------------------------------------------------------------------
@@ -20,4 +22,13 @@ Route::get('/', function () {
 Route::get('/info', function() {
     phpinfo();
     die();
+});
+
+
+Route::get('/log', function() {
+    Log::info("Test log message: " . time());
+});
+
+Route::get('/error', function() {
+    throw new \Exception("A random error here!");
 });

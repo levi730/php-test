@@ -31,18 +31,18 @@ RUN npm install && npm run build
 #################################################
 # PHP/Apache Setup
 #################################################
-#FROM us-docker.pkg.dev/quickstart-1581571807512/ftas-base-images/ftas-php-82-apache
-FROM php:8.2-apache
-WORKDIR /var/www/html
-COPY . /var/www/html
+FROM us-docker.pkg.dev/quickstart-1581571807512/ftas-base-images/ftas-php-82-apache
+WORKDIR /app
+COPY . /app
 
-COPY --from=frontend /app/public /var/www/html/public
-RUN chown -R www-data: /var/www/html && \
-  find /var/www/html -type d -exec chmod 0755 {} \; && \
-  find /var/www/html -type f -exec chmod 0644 {} \; && \
+COPY --from=frontend /app/public /app/public
+RUN chown -R www-data: /app && \
+  find /app -type d -exec chmod 0755 {} \; && \
+  find /app -type f -exec chmod 0644 {} \; && \
   sed -i 's/80/${PORT}/g' /etc/apache2/sites-available/000-default.conf /etc/apache2/ports.conf && \
-  sed -ri -e 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/*.conf /etc/apache2/apache2.conf
+  sed -ri -e 's!/var/www/html!${APACHE_ROOT}!g' /etc/apache2/sites-available/*.conf /etc/apache2/apache2.conf
 
+RUN find /app
 
-COPY --from=vendor /app/vendor/ /var/www/html/vendor/
+COPY --from=vendor /app/vendor/ /app/vendor/
 
